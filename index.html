@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom of Biker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        let cloudX = 0;
+        let cloudSpeed = 2;
+        let bikerX;
+        let defaultBikerX;
+        let moveBiker = false;
+        let bikerReturning = false;
+        let currentBikeImage;
+        let bike1, bike2;
+        let spaceImage;
+        let smokeHeight;
+        let smokeSpeed = 0.05;
+        let time = 0;
+        let rimRotation = 0;
+        let morningColor, middayColor, eveningColor, nightColor;
+        let transitionFactor = 0;
+        let motorcycleSound;
+        function preload() {
+            backgroundImage = loadImage('background.png');
+            bike1 = loadImage('BikerLookingAtUs.png');
+            bike2 = loadImage('BikerGoingForward.png');
+            cloudImage = loadImage('Cloud.png');
+            frontRim = loadImage('FrontRim.png');
+            rearRim = loadImage('RearRim.png');
+            houseSmoke = loadImage('HouseSmoke.png');
+            spaceImage = loadImage('PressSpace.png');
+            motorcycleSound = loadSound('RidingSound.mp3');
+            currentBikeImage = bike1;
+        }
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            defaultBikerX = windowWidth / 2 + 100;
+            bikerX = defaultBikerX;
+            textAlign(CENTER, CENTER);
+            morningColor = color(135, 206, 235);
+            middayColor = color(255, 255, 224);
+            eveningColor = color(255, 140, 0);
+            nightColor = color(25, 25, 112);
+        }
+        function draw() {
+            if (moveBiker){
+               updateSkyColorTransition(); 
+            }
+            drawGradient(morningColor, middayColor);
+            drawImageFull(backgroundImage);
+            drawCloud();
+            drawHouseSmoke();
+            drawWheel();
+            drawBiker();
+            if (moveBiker) {
+                bikerX -= 3.8;
+                rimRotation -= 0.2;
+                if (!motorcycleSound.isPlaying()) {
+                    motorcycleSound.loop();
+                }
+                if (bikerX < -currentBikeImage.width) {
+                    moveBiker = false;
+                    bikerReturning = true;
+                    bikerX = windowWidth;
+                }
+            }
+            if (!moveBiker && !bikerReturning) {
+                image(spaceImage, width / 2 +290, height/2 +325, spaceImage.width/4 , spaceImage.height/4);
+                motorcycleSound.stop();
+            }
+            if (bikerReturning) {
+                bikerX -= 3.8;
+                rimRotation -= 0.2;
+
+                if (bikerX <= defaultBikerX) {
+                    bikerReturning = false;
+                    bikerX = defaultBikerX;
+                    currentBikeImage = bike1;
+                    rimRotation = 0;
+                    motorcycleSound.stop();
+                }
+            }
+        }
+        function updateSkyColorTransition() {
+                if (moveBiker || bikerReturning) {
+                    transitionFactor += 0.01;
+                } else {
+                    transitionFactor -= 0.01;
+                    transitionFactor = max(transitionFactor, 0);
+                }
+                let wrappedFactor = transitionFactor % 4;
+                let progress = wrappedFactor % 1;
+                let phase = Math.floor(wrappedFactor);
+                switch (phase) {
+                    case 0:
+                        morningColor = lerpColor(color(135, 206, 235), color(255, 255, 224), progress);
+                        middayColor = lerpColor(color(255, 224, 178), color(255, 140, 0), progress);
+                        break;
+                    case 1:
+                        morningColor = lerpColor(color(255, 255, 224), color(255, 140, 0), progress);
+                        middayColor = lerpColor(color(255, 224, 178), color(25, 25, 112), progress);
+                        break;
+                    case 2:
+                        morningColor = lerpColor(color(255, 140, 0), color(25, 25, 112), progress);
+                        middayColor = lerpColor(color(25, 25, 112), color(135, 206, 235), progress);
+                        break;
+                    case 3:
+                        morningColor = lerpColor(color(25, 25, 112), color(135, 206, 235), progress);
+                        middayColor = lerpColor(color(135, 206, 235), color(255, 255, 224), progress);
+                        break;
+                }
+            }
+        function drawGradient(topColor, bottomColor) {
+            for (let y = 0; y < height; y++) {
+                let inter = map(y, 0, height, 0, 1);
+                let c = lerpColor(topColor, bottomColor, inter);
+                stroke(c);
+                line(0, y, width, y);
+            }
+        }
+        function drawImageFull(img) {
+            let imgAspectRatio = img.width / img.height;
+            let imgWidth = windowWidth;
+            let imgHeight = imgWidth / imgAspectRatio;
+            let imgY = windowHeight - imgHeight;
+            image(img, 0, imgY, imgWidth, imgHeight);
+        }
+        function drawWheel() {
+            push();
+            translate(bikerX + 37 + frontRim.width / 2, windowHeight / 2 + 212 + frontRim.height / 2);
+            rotate(rimRotation);
+            imageMode(CENTER);
+            image(frontRim, 0, 0, frontRim.width, frontRim.height);
+            pop();
+            push();
+            translate(bikerX + 478 + rearRim.width / 2, windowHeight / 2 + 210 + rearRim.height / 2);
+            rotate(rimRotation);
+            imageMode(CENTER);
+            image(rearRim, 0, 0, rearRim.width, rearRim.height);
+            pop();
+        }
+        function drawCloud() {
+            cloudX += cloudSpeed;
+            if (cloudX > windowWidth) {
+                cloudX = -cloudImage.width;
+            }
+            image(cloudImage, cloudX, windowHeight / 20, cloudImage.width, cloudImage.height);
+        }
+        function drawBiker() {
+            image(currentBikeImage, bikerX, windowHeight / 2 - 50, currentBikeImage.width, currentBikeImage.height);
+        }
+        function drawHouseSmoke() {
+            let minSmokeHeight = houseSmoke.height / 4;
+            let maxSmokeHeight = houseSmoke.height / 2;
+            smokeHeight = map(sin(time), -1, 1, minSmokeHeight, maxSmokeHeight);
+            let smokeY = windowHeight / 6 - 22 + (maxSmokeHeight - smokeHeight);
+            image(houseSmoke, windowWidth / 2 + 515, smokeY, houseSmoke.width / 2, smokeHeight);
+            time += smokeSpeed;
+        }
+        function keyPressed() {
+            if (key === ' ') {
+                if (!moveBiker && !bikerReturning) {
+                    moveBiker = true;
+                    currentBikeImage = bike2;
+                }
+            }
+        }
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+
+</html>
